@@ -1,29 +1,52 @@
 package main
 
-var Index_html=[]byte(`
+var Index_html=string(`
 <!doctype html>
 <html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Image</title>
+    <title>{{.Title}}</title>
 
     <link rel="stylesheet" type="text/css" href="/static/include/pure-min.css">
 <!-- include scooch.css -->
     <link rel="stylesheet" type="text/css" href="/static/include/scooch.min.css">
     <link rel="stylesheet" type="text/css" href="/static/include/scooch-style.min.css">
+    <style>
+    .small-font {
+    	font-size: 80%;
+    }
+    .button-success,
+    .button-secondary {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    }
+    .button-success {
+            background: rgb(28, 184, 65); /* this is a green */
+    }
+    .button-secondary {
+            background: rgb(66, 184, 221); /* this is a light blue */
+    }
+    </style>
 </head>
 
 <body>
     <!--
     Your HTML goes here. Visit purecss.io/layouts/ for some sample HTML code.
     -->
+    <form class="pure-form small-font">
     <div class="pure-g">
       <div class="pure-u-1" align="center">
-		  <span class="btn-prev"><a class="lnk-prev" href="#">Prev</a></span>
-          <select id="top-chapter-select" class="chapter-select"></select>
-		  <span class="btn-prev"><a class="lnk-next" href="#">Next</a></span>          
+		  <span class="btn-prev"><a class="lnk-prev pure-button button-success small-font" href="#">Prev</a></span>
+          <select id="top-chapter-select" class="chapter-select small-font">
+          {{range .ChapterList}}
+          <option value="{{.}}">{{.}}</option>
+          {{end}}
+          </select>
+		  <span class="btn-prev"><a class="lnk-next pure-button button-success small-font" href="#">Next</a></span>          
+		  <span class="btn-restore"><a id="last-view" class="pure-button button-secondary small-font" href="#">Last view</a></span>          
       </div>
       <div class="pure-u-1">
 		<!-- the viewport -->
@@ -40,124 +63,160 @@ var Index_html=[]byte(`
 		</div>
       </div>
       <div class="pure-u-1" align="center">
-		  <span class="btn-prev"><a class="lnk-prev" href="#">Prev</a></span>
-          <select id="bottom-chapter-select" class="chapter-select"></select>
-		  <span class="btn-prev"><a class="lnk-next" href="#">Next</a></span>          
+		  <span class="btn-prev"><a class="lnk-prev pure-button button-success small-font" href="#">Prev</a></span>
+          <select id="bottom-chapter-select" class="chapter-select small-font">
+          {{range .ChapterList}}
+          <option value="{{.}}">{{.}}</option>
+          {{end}}
+          </select>
+		  <span class="btn-prev"><a class="lnk-next pure-button button-success small-font" href="#">Next</a></span>          
       </div>
     </div>
-
+	</form>
 <!-- include zepto.js or jquery.js -->
 <script src="/static/include/zepto.min.js" type="application/javascript"></script>
 <!-- include scooch.js -->
 <script src="/static/include/scooch.min.js" type="application/javascript"></script>
 <!-- construct the carousel -->
 <script type="application/javascript">
-	var force_load_flag = true;
+var page_title="{{.Title}}";
+var force_load_flag = true;
+var last_chapter = getCookie("chapter");
+var last_page = Number(getCookie("page"));
+var flag_restore_last_page = false;
+
+console.log("last chapter:", last_chapter);
+console.log("last page:", last_page);
+
+function jump_last_view() {
 	
-    function load_img_to_scooch(img_array) {
-        $(".m-scooch-inner").empty();
-        if ((img_array == null) || (img_array.length == 0))
-			return;
-			
-        for (index=0; index<img_array.length; index++) {
-            var is_active="";
-            if (index==0) is_active="m-active" ;
-            $(".m-scooch-inner").append("<div class=\"m-item "+is_active+"\"><img src=\""+ img_array[index] +"\"/></div>");
-        }
-		force_load_flag = true;
-		$(".m-scooch").scooch("refresh");
+	if (last_page == NaN) 
+		last_page = 1;
+	flag_restore_last_page = true;
+	$(".chapter-select").val(last_chapter);
+	$("#top-chapter-select").change();
+}
+
+function setCookie(key, value) {
+	var expires = new Date();
+	expires.setTime(expires.getTime() + (1 * 24 * 60 * 60 * 1000));
+	document.cookie = key + '=' + value + ';expires=' + expires.toUTCString();
+}
+
+function getCookie(key) {
+	var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
+	return keyValue ? keyValue[2] : null;
+}
+
+function load_img_to_scooch(img_array) {
+	if ((img_array == null) || (img_array.length == 0))
+		return;
+	force_load_flag = true;
+	$(".m-scooch-inner").empty();
+	
+	for (index=0; index<img_array.length; index++) {
+		var is_active="";
+		if (index==0) is_active="m-active" ;
+		$(".m-scooch-inner").append("<div class=\"m-item "+is_active+"\"><img src=\""+ img_array[index] +"\"/></div>");
+	}
+	
+	$(".m-scooch").scooch("refresh");
+	if (flag_restore_last_page) {
+		$(".m-scooch").scooch("move",last_page);
+	} else {
 		$(".m-scooch").scooch("move",1);
-		force_load_flag = false;
-    }
+	}
+	force_load_flag = false;
+	flag_restore_last_page = false;
+	console.log("finish load img to scooch");
+}
 
+function load_chapterlist () {
+	var first_chapter = $('#top-chapter-select>option').first().val();
+	loadchapter(first_chapter);
+	
+}
 
-	function load_chapterlist () {
-		$.ajax({url:"/chapter-list", success: function(result) {
-			var option="";
-			for (var i=0; i<result.length;i++) {
-				option += '<option value="'+ result[i] + '">' + result[i] + '</option>';
+function loadchapter(chapter_name) {
+	var retval=[];
+	$.ajax({url:"/page-list/"+chapter_name, success: function(result) {
+		console.log("finish getting pages, load to scooch");
+		load_img_to_scooch(result);
+		setCookie("chapter", chapter_name);
+	}});
+}
+
+function page_init() {
+	load_chapterlist();
+	console.log("finish page init");
+}
+
+function prev_chapter() {
+	var current_selected_chapter = $("#top-chapter-select").val();
+	var next_chapter = $("#top-chapter-select>option").filter(function( index ){ return $(this).val()== current_selected_chapter }).prev() ;
+	if (next_chapter.length == 1) {
+		$("#top-chapter-select").val(next_chapter.val());
+		$("#bottom-chapter-select").val(next_chapter.val());
+		$("#top-chapter-select").change();
+	}
+}
+
+function next_chapter() {
+	var current_selected_chapter = $("#top-chapter-select").val();
+	var next_chapter = $("#top-chapter-select>option").filter(function( index ){ return $(this).val()== current_selected_chapter }).next() ;
+	if (next_chapter.length == 1) {
+		$("#top-chapter-select").val(next_chapter.val());
+		$("#bottom-chapter-select").val(next_chapter.val());
+		$("#top-chapter-select").change();
+	}
+}
+
+page_init();   
+$('.m-scooch').scooch();
+
+$(".chapter-select").change( function (e){
+	//var selected_chapter = $(this).val();
+	var selected_chapter = this.value;
+	console.log("chapter change");
+	loadchapter(selected_chapter);
+	$(".chapter-select").not(this).val( $(this).val() );
+	
+});
+
+$(".lnk-prev").click(function() {
+	prev_chapter();
+});
+
+$(".lnk-next").click(function() {
+	next_chapter();
+});
+
+$('.m-scooch').on('afterSlide', function (e, index, newIndex) {
+	// find current chapter pages
+	console.log(index,"-",newIndex);
+	setCookie("page",newIndex);
+	var img_array = $(".m-item>img")
+	if (index==newIndex) {
+		if (index==1) {
+			if (!force_load_flag) {
+				console.log("move to prev chapter");
+				prev_chapter();
 			}
-			$('.chapter-select').html(option)
-			
-			var first_chapter = $('#top-chapter-select>option').first().val();
-			console.log("first chapter:",first_chapter);
-			$(".chapter-select").val(first_chapter);
-			$(".chapter-select").change();
-		}});
-	}
-
-    function loadchapter(chapter_name) {
-        var retval=[];
-		$.ajax({url:"/page-list/"+chapter_name, success: function(result) {
-			load_img_to_scooch(result);
-		}});
-    }
-
-	function page_init() {
-		load_chapterlist();
-		/*
-		var first_chapter = $('#top-chapter-select>option').first().val();
-		console.log("first chapter:",first_chapter);
-		$(".chapter-select").val(first_chapter);
-		$(".chapter-select").change();
-		*/
-	}
-	
-	function prev_chapter() {
-		var current_selected_chapter = $("#top-chapter-select").val();
-		var next_chapter = $("#top-chapter-select>option").filter(function( index ){ return $(this).val()== current_selected_chapter }).prev() ;
-		if (next_chapter.length == 1) {
-			$(".chapter-select").val(next_chapter.val());
-			$(".chapter-select").change();
+		} else {
+			console.log("move to next chapter");
+			next_chapter();
 		}
+	} else {
+		$(window).scrollTop(0);
 	}
-	
-	function next_chapter() {
-		var current_selected_chapter = $("#top-chapter-select").val();
-		var next_chapter = $("#top-chapter-select>option").filter(function( index ){ return $(this).val()== current_selected_chapter }).next() ;
-		if (next_chapter.length == 1) {
-			$(".chapter-select").val(next_chapter.val());
-			$(".chapter-select").change();
-		}
-	}
-	
-    page_init();   
-    $('.m-scooch').scooch();
-        
-    $(".chapter-select").change( function (){
-        var selected_chapter = $(this).val();        
-        loadchapter(selected_chapter);
-    });
-    
-    $(".lnk-prev").click(function() {
-		prev_chapter();
-	});
+	var new_title="" + page_title + " - " + $("#top-chapter-select").val() + " - " + newIndex + "/" + $('.m-item').length ; 
+	$("title").text(new_title);
+});
 
-    $(".lnk-next").click(function() {
-		next_chapter();
-	});
-    
-    $('.m-scooch').on('afterSlide', function (e, index, newIndex) {
-		// find current chapter pages
-		console.log(index,"-",newIndex);
-		var img_array = $(".m-item>img")
-        if (index==newIndex) {
-			if (index==1) {
-				if (!force_load_flag) {
-					console.log("move to prev chapter");
-					prev_chapter();
-				}
-			} else {
-				console.log("move to next chapter");
-				next_chapter();
-			}
-        } else {
-        	$(window).scrollTop(0);
-        }
-    });
-    
+$("#last-view").click(function(){
+	jump_last_view();
+});
 </script>
-
 </body>
 </html>
 `)

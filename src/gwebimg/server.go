@@ -14,6 +14,7 @@ import (
 	//"strings"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 )
 /*
 func Index(w http.ResponseWriter, r *http.Request, cfg *TOMLConfig) {
@@ -55,6 +56,30 @@ func PageList(w http.ResponseWriter, r *http.Request, cfg *Config) {
 	}
 }
 
+func Index(w http.ResponseWriter, r *http.Request, cfg *Config) {
+	page := PageIndexTpl{}
+	chapterList := ListDir(cfg.ImgPath)
+	page.ChapterList = chapterList
+	/*
+	chapterListJson, err := json.Marshal(chapterList)
+	if err != nil {
+		GlobalLog.Println("Marshal chapter list to json err:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "marshal json chapter list error")
+		return
+	}
+	page.ChapterListJSON = string(chapterListJson)
+	*/
+	page.Title = filepath.Base(cfg.ImgPath)
+	
+	err := cfg.Template.ExecuteTemplate(w, "index", page)
+	if err != nil {
+		GlobalLog.Println("Template execute err:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "template error")
+		return
+	}
+}
 
 func Server(cfg *Config) {
 	listenString := cfg.Address + ":" + strconv.Itoa(cfg.Port)
@@ -73,7 +98,8 @@ func Server(cfg *Config) {
 
 	mainRoute.HandleFunc("/", func( w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/html; charset: UTF-8")
-			w.Write(Index_html)
+			//w.Write(Index_html)
+			Index(w, r, cfg)
 			})
 	
 	mainRoute.HandleFunc("/static/include/pure-min.css", func( w http.ResponseWriter, r *http.Request) {

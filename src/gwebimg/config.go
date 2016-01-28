@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"html/template"
+	"html/template"
 )
 
 type Config struct {
@@ -10,5 +10,12 @@ type Config struct {
 	//TemplatePath string
 	//WebResourcePath string
 	ImgPath string
-	//Templates *template.Template
+	Template *template.Template
 }
+
+type PageIndexTpl struct {
+	Title string
+	//ChapterListJSON string
+	ChapterList []string
+}
+

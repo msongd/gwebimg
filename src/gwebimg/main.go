@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"html/template"
 )
 
 var HOST     string
@@ -66,7 +67,12 @@ func main() {
 	//cfg.TemplatePath = TEMPLATE_DIR
 	
 	ValidateConfig(cfg)
-	GlobalLog.Println("[Config]:", cfg)
+	tpl, err := template.New("index").Parse(Index_html)
+	if err != nil {
+		GlobalLog.Fatal("Unable to parse index tpl:", err)
+		os.Exit(-1)
+	}
+	cfg.Template = tpl
 	Server(cfg)
-	
 }
+
