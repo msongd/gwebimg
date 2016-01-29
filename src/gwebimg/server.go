@@ -60,19 +60,24 @@ func Index(w http.ResponseWriter, r *http.Request, cfg *Config) {
 	page := PageIndexTpl{}
 	chapterList := ListDir(cfg.ImgPath)
 	page.ChapterList = chapterList
-	/*
-	chapterListJson, err := json.Marshal(chapterList)
-	if err != nil {
-		GlobalLog.Println("Marshal chapter list to json err:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "marshal json chapter list error")
-		return
-	}
-	page.ChapterListJSON = string(chapterListJson)
-	*/
 	page.Title = filepath.Base(cfg.ImgPath)
 	
 	err := cfg.Template.ExecuteTemplate(w, "index", page)
+	if err != nil {
+		GlobalLog.Println("Template execute err:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "template error")
+		return
+	}
+}
+
+func IndexWithMenu(w http.ResponseWriter, r *http.Request, cfg *Config) {
+	page := PageIndexTpl{}
+	chapterList := ListDir(cfg.ImgPath)
+	page.ChapterList = chapterList
+	page.Title = filepath.Base(cfg.ImgPath)
+	
+	err := cfg.Template.ExecuteTemplate(w, "index_menu", page)
 	if err != nil {
 		GlobalLog.Println("Template execute err:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -96,10 +101,16 @@ func Server(cfg *Config) {
 			PageList(w,r,cfg)
 			})
 
-	mainRoute.HandleFunc("/", func( w http.ResponseWriter, r *http.Request) {
+	mainRoute.HandleFunc("/old", func( w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/html; charset: UTF-8")
 			//w.Write(Index_html)
 			Index(w, r, cfg)
+			})
+
+	mainRoute.HandleFunc("/", func( w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset: UTF-8")
+			//w.Write(Index_html)
+			IndexWithMenu(w, r, cfg)
 			})
 	
 	mainRoute.HandleFunc("/static/include/pure-min.css", func( w http.ResponseWriter, r *http.Request) {
@@ -114,6 +125,10 @@ func Server(cfg *Config) {
 			w.Header().Set("Content-Type", "text/css; charset: UTF-8")
 			w.Write(Scooch_min_css)
 			})
+	mainRoute.HandleFunc("/static/include/side-menu.css",func( w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/css; charset: UTF-8")
+			w.Write(Side_menu_css)
+			})
 	mainRoute.HandleFunc("/static/include/scooch.min.js",func( w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/javascript; charset: UTF-8")
 			w.Write(Scooch_min_js)
@@ -121,6 +136,10 @@ func Server(cfg *Config) {
 	mainRoute.HandleFunc("/static/include/zepto.min.js",func( w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/javascript; charset: UTF-8")
 			w.Write(Zepto_min_js)
+			})
+	mainRoute.HandleFunc("/static/include/ui.js",func( w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/javascript; charset: UTF-8")
+			w.Write(Ui_js)
 			})
 	
 	mainRoute.PathPrefix("/static/images/").Handler(http.StripPrefix("/static/images/",http.FileServer(http.Dir(cfg.ImgPath))))

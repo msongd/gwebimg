@@ -67,7 +67,13 @@ func main() {
 	//cfg.TemplatePath = TEMPLATE_DIR
 	
 	ValidateConfig(cfg)
-	tpl, err := template.New("index").Parse(Index_html)
+	tpl := template.New("index")
+	tpl, err := tpl.Parse(Index_html)
+	if err != nil {
+		GlobalLog.Fatal("Unable to parse index tpl:", err)
+		os.Exit(-1)
+	}
+	tpl, err = tpl.New("index_menu").Parse(Index_menu_html)
 	if err != nil {
 		GlobalLog.Fatal("Unable to parse index tpl:", err)
 		os.Exit(-1)
